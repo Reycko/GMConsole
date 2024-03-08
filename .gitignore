@@ -2,3 +2,4 @@
 scripts/GMLive*
 objects/obj_gmlive
 objects/obj_gmlive*
+*.md.backup
