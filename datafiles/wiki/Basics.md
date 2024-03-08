@@ -7,9 +7,10 @@ This will go over the basics of the console's features.
 #### Table of contents:
 - [The console](#the-console)  
   - [Interface](#interface)  
-  - [Info bar](#interface-info-bar)  
-  - [Output window](#interface-output-window)  
-  - [Command bar](#interface-cmd-bar)  
+    - [Info bar](#interface-info-bar)  
+    - [Output window](#interface-output-window)  
+    - [Command bar](#interface-cmd-bar)  
+  - [Settings](#settings)
 
 ---
 ## <a name="the-console">The console</a>
@@ -22,7 +23,7 @@ GMConsole has a clear and colorful logs in a simple UI.
 It has 3 parts: the info bar (top bar), the output window, and the command bar (cmd bar).  
 (This screenshot is from v0.3.00.00-dev, some text might have been changed.)
 <!-- Fun fact: I had to redo this 3 times because I kept on changing strings for 0.3.00.00 (as it's the first public release) --->
-![The 3 parts of GMConsole](./img/console-parts.png)
+<img src="./img/console-parts.png" alt="The 3 parts of GMConsole" width=600px>
 
 #### <a name="interface-info-bar">Info bar</a>
 The info bar contains these fields:
@@ -51,3 +52,7 @@ This is where you input your commands. Here is an example of what happens in the
 > Made with \<3 by Reycko  
 > You are on branch master (based on version name)  
 > Use command \`github\` to open the GitHub repo!  
+
+### <a name="settings">Settings</a>
+To modify the settings as of 0.3.00.01, you need to go into the console's create object, scroll down to the "Settings" region inside of the "Console variables" region.  
+<img src="./img/console-settings.png" alt="Location of the settings struct">

@@ -20,7 +20,14 @@ con_log(obj_gmconsole.con.enum.logtype.debug, x);
 // Or also like this, if you have set up the `gmc` macro (see gmconsole_init):
 con_log(gmc.con.enum.logtype.debug, x);
 ```
-Your object's X position now prints to the console every frame.
+Your object's X position now prints to the console every frame.  
+The 4 log types in the enum are:  
+- `log`
+- `warn`
+- `error` or `err`
+- `debug` (only prints if show_debug_logs is enabled)  
+
+<span style="color:yellow;"><img src="https://raw.github.com/Reycko/GMConsole/stable/datafiles/wiki/img/emoji/information.png" alt="[Information]" width=20px/> There is also the `none` log type, however, it is recommended not to use it as it's only supposed to be for multi-line strings in the output window.</span><br>
 
 ---
 ## <a name="adding-your-own-commands">Adding your own commands</a>
