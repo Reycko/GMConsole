@@ -135,7 +135,7 @@ function(_args, _arg_count)
 	return game_get_speed(_type);
 });
 
-if (asset_get_index("obj_gmlive") != -1 && instance_exists(obj_gmlive) && live_enabled) // Requires YellowAfterlife's GMLive
+if (con.hasgmlive && instance_exists(obj_gmlive) && live_enabled) // Requires YellowAfterlife's GMLive
 {	
 	con_add_command(new ConCommandMeta
 	(

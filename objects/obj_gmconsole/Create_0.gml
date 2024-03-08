@@ -30,6 +30,7 @@ con = {}; // This is our console's struct!
 #region Others (pre-enum)
 global.__con = id;
 con.open = false;
+con.hasgmlive = asset_get_index("obj_gmlive")
 con.version = "0.3.00.01";
 con.latest_version = "";
 con.github = {
@@ -203,7 +204,7 @@ function con_open()
 	var _console = id;
 	with (all)
 	{
-		if (id != _console && asset_get_index("obj_gmlive") != -1 
+		if (id != _console && con.hasgmlive 
 		&& (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
 		{
 			array_push(_deactivation_index, self);
