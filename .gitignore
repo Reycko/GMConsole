@@ -1,1 +1,4 @@
+# Please tell me I didn't fuck this up I never do .gitignore-s
 scripts/GMLive*
+objects/obj_gmlive
+objects/obj_gmlive/*
