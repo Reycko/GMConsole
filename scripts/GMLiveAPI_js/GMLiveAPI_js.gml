@@ -1,6 +1,7 @@
 // You can comment out this whole file if you don't use HTML5
 function live_preinit_js_dummy() {}
 if(live_enabled)
+/// Feather disable GM2017
 function live_preinit_js_func_0(l_ind) {
 	switch (l_ind) {
 		case 0: return is_real;

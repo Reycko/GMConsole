@@ -4,20 +4,22 @@ if instance_number(obj_console) > 1
 	instance_destroy(self); // Self destruct if a console already exists
 }
 
-con = {}; // This is our console's stuff! Yay!
+con = {}; // This is our console's struct!
 /*
-	Seriously though, if you modify the console,
-	then make sure to use the con struct instead.
-	Only use object variables like temporary vars
-	that can be used in code for multiple events.
+	If you modify/add internal variables, then
+	make sure to define your vars in the con 
+	struct.
 	
-	The reason why is so that we can define
-	variables like `x` or `visible` without using
-	the built-in variables for objects.
-	-Reycko
+	Only use object variables like temporary vars
+	that can be used in code for multiple events,
+	or in between a *_foreach() function.
+	
+	The reason is for us to be able to define vars
+	like `x` or `visible` without using the built-
+	in variables for objects. -Reycko
 */
 
-
+// Settings at region: Console variables -> Console settings
 #region Console variables
 #region Others
 con.open = false;
@@ -131,14 +133,16 @@ con.enums.logtype =
 #endregion
 #region Console settings
 con.settings = {
-	show_debug_logs: con.build.release,
+	show_debug_logs: !con.build.release, // Show logs with the debug type
+	can_open: !con.build.release, // If false, console cannot be opened.
 };
+#endregion
 #endregion
 #region Console functions
 #region Opening/closing console
 function con_open()
 {
-	if (con.open) { return; }
+	if (con.open || !con.settings.can_open) { return; }
 	display_set_gui_size(con.guisize[0], con.guisize[1]);
 	var _deactivation_index = [];
 	var _console = id;
@@ -160,7 +164,7 @@ function con_open()
 
 function con_close()
 {
-	if (!con.open) { return; }
+	if (!con.open || !con.settings.can_open) { return; }
 	display_set_gui_size(con.game_guisize[0], con.game_guisize[1]);
 	for (var i = 0; i < array_length(con.deactivation); i++)
 	{
@@ -176,81 +180,137 @@ function con_close()
 #region Log to console
 // Inverting the arguments in this weirdly causes isues
 // Feather disable once GM1056
+/// @param	{Struct.con.enums.logtype}	_type
+/// @param	{Any}						_text
 function con_log(_type = con.enums.logtype.log, _text)
 {
 	_text = string(_text); // Stringification
 	// If you've dealt with the trim bug, then uncomment the second line and delete the first.
-	ds_list_add(con.output, [_type, date_current_datetime(), string_replace(_text, "\n", " ")]);
-	//ds_list_add(con.output, [_type, date_current_datetime(), _text]);
+	//ds_list_add(con.output, [_type, date_current_datetime(), string_replace(_text, "\n", " ")]);
+	ds_list_add(con.output, [_type, date_current_datetime(), _text, true]);
 }
 #endregion
-#region Adding commands + Error handler
+#region Constructors
 
-/// @function					con_error_handler(exception)
-///	@description				Default error handler for console commands. Logs to console as an error
-/// @param		{Struct}	_e	Exception struct.
-function con_error_handler(_e)
+/// @param	{String}				_arg			The name of the argument.
+/// @param	{String}				_type			The argument's type. The console will use typeof.
+/// @param	{String}				_description	The description for your argument. Used by `cmds` to give a description.
+/// @param	{Bool}					_optional		Whether this is an optional argument.
+/// @param	{Array<Any>}			_values			Accepted values, leave blank to allow anything (of the specified type).
+function ConCommandArg(_arg, _type, _description, _optional = false, _values = []) constructor
 {
-	con_log(con.enums.logtype.err, $"Couldn't add command: {_name}: {string(_e)}");
+	arg = _arg;
+	type = _type;
+	description = _description;
+	optional = _optional;
+	values = _values;
 }
-
-/// @function										con_add_command(name, description, function, aliases)
-/// @description									Add a console command.
-///													If success, returns true, else returns the exception struct.
-/// @param			{String}		_name			The name of the command to add.
-/// @param			{String}		_description	Describe the command.
-/// @param			{Function}		_func			The function to execute. Add "_args" as a 
-///													parameter to get command arguments.
-/// @param			{Array.String}	_aliases		Other names for the command.
-/// @param			{Function}		_err_handler	Custom error handler if an exception occurs.
-///													Note that executing from the console will always try-catch.
-/// @return			{Bool | Struct}					
-function con_add_command(_name, _description, _func, _aliases = [], _err_handler = con_error_handler)
+/// @param	{String}						_name			Command name.
+/// @param	{String}						_description	Command description.
+/// @param	{Array<Struct.ConCommandArg>}	_arguments		Arguments for the command.
+/// @param	{Array<String>}					_aliases		Command aliases.
+function ConCommandMeta(_name, _description, _arguments = [], _aliases = []) constructor
 {
-	_name = string_lower(_name)
-	try
-	{
-		con.commands.data[$ _name] = {
-			description: _description,
-			func: _func,
-		};
-		
-		for (var i = 0; i < array_length(_aliases); i++)
-		{
-			_aliases[i] = string_lower(_aliases[i]);
-			con.commands.aliases[$ _aliases[i]] = _name; // Example: alias "a" for "b" -> con.commands.aliases.a = "b";
-		}
-		return true;
-	} 
-	catch (_e) 
-	{
-		_err_handler(_e);
-		return _e;
-	}
+	name = _name;
+	description = _description;
+	arguments = _arguments;
+	aliases = _aliases;
+}
+#endregion
+#region Command-related functions
+/// @function												con_add_command(name, description, function, aliases)
+/// @description											Add a console command.
+///															If success, returns true, else returns the exception struct.
+/// @param			{Struct.ConCommandMeta}	_meta			The name of the command to add.
+/// @param			{Function}				_func			The function to execute. Add an argument as a 
+///															parameter to get command arguments.
+/// @return			{Undefined}
+function con_add_command(_meta, _func)
+{
+	con.commands.metas[$ _meta[$ "name"]] = _meta;
+	con.commands.funcs[$ _meta[$ "name"]] = _func;
 }
 #endregion
 #region Others
-/// @function								con_get_arg_safe(arguments, index, cleanup = true)
-///	@description							Safely get the wanted argument.
-/// @param		{Array.String}	_args		Contents of the command's `_args`.
-/// @param		{Real}			_index		Index of the array to safety grab the argument of.
-///	@param		{Bool}			_cleanup	Clean up strings to prevent issues with how the console works.
-/// @returns	{Undefined,Any}				If undefined, return undefined as well + log to console, else, the wanted argument,
-///											clean if _cleanup is true.
-function con_get_arg_safe(_args, _index, _cleanup = true)
+/// @param		{String}	_val		Input value.
+/// @param		{String}	_to			Tries to convert _val to this.
+/// @returns	{Any}
+function con_convert_value(_val, _to)
 {
-	if (_index >= array_length(_args)) { con_log(con.enums.logtype.err, $"Missing argument {string(_index)}"); return undefined; }
-	if (is_undefined(_args[_index])) { con_log(con.enums.logtype.err, $"Invalid argument {string(_index)}"); return undefined; }
-	var _val = _args[_index];
-	if (is_string(_val) && _cleanup)
+	switch (_to)
 	{
-		_val = string_replace_all(_val, "|", "");
+		case "string": return string(_val);
+		case "real": case "number": return real(_val);
+		case "int64": return int64(_val);
 	}
-	return _val;
+	/*con_log(con.enums.logtype.err, $"con_convert_value(): Invalid or unsupported type `{_to}`.");
+	return undefined;*/
+	throw($"con_convert_value(): Invalid or unsupported type `{_to}`.");
+	return undefined;
 }
 
-/// @function						string_is_number(string)
-/// @description					Returns whether or not said string is a valid number.
+/// @param		{Array<String>}	_args		Contents of the command's `args` array.
+/// @param		{Real}			_index		Index of the args array to get the value from.
+/// @returns	{Any}						argument, converted based on it's meta.
+function con_get_arg(_args, _index)
+{
+	// TODO: Implement this in a way that `args` directly gives these! (Step code?)
+	// TODO: Convert all the text here to con.strings
+	var _arg_meta = con.commands.metas[$ _args[0]].arguments[_index - 1];
+	if (_index == 0) { return _arg_meta.name; }
+	var _fail = [false, ""];
+	if (_index >= array_length(_args)) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}"]; }
+	if (is_undefined(_args[_index])) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}"]; }
+	
+	var _arg = con_convert_value(_args[_index], _arg_meta.type);
+	if (typeof(_arg) != _arg_meta.type) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}, got {typeof(_arg)}"]; }
+	
+	if (array_length(_arg_meta.values) >= 1)
+	{
+		if (!array_contains(_arg_meta.values, _arg)) { _fail = [true, $"Argument {_index}: expected `{string_join_ext("`|`", _arg_meta.values)}`, got {_arg}"]; }
+	}
+	
+	if (_fail[0]) { throw(_fail[1]); }
+	return _arg;
+}
+
+/// @returns	{Struct}
+function con_get_aliases()
+{
+	var _ret = {};
+	var _metas = con.commands.metas;
+	for (var i = 0; i < struct_names_count(_metas); i++)
+	{
+		var key = struct_get_names(_metas)[i];
+		var value = struct_get(_metas, key);
+		_ret[$ key] = value[$ "aliases"];
+	}
+	return _ret;
+}
+
+/// @param		{String}		_alias
+/// @returns	{String | Bool}
+function con_translate_alias(_alias)
+{
+	if (variable_instance_exists(self, con.commands.funcs[$ _alias]) || !is_undefined(con.commands.funcs[$ _alias])) { return _alias; } // Is already the actual name
+	_ret = _alias;
+	struct_foreach(con_get_aliases(), function(_key, _value)
+	{
+		for (var i = 0; i < array_length(_value); i++)
+		{
+			var _check = _value[i];
+			if (string_lower(_ret) == string_lower(_check))
+			{
+				_ret = _key;
+			}
+		}
+	});
+	
+	var __ret = _ret;
+	_ret = undefined;
+	return (__ret == _alias ? false : __ret);
+}
+
 /// @param		{String}	_str	The input string.
 ///	@returns	{Bool}				Whether or not said string is a valid number.
 function string_is_number(_str)
@@ -258,37 +318,78 @@ function string_is_number(_str)
 	return string_digits(_str) != "";
 }
 
-/// @function						string_to_number(string)
-/// @description					Returns a number based on string as input. Returns false if it is not a number.
-/// @param		{String}	_str	Input string.
-/// @returns	{Real | Bool}		If number, the converted number, else false.
+/// @param		{String}		_str	Input string.
+/// @returns	{Real | Bool}			If number, the converted number, else false.
 function string_to_number(_str)
 {
 	if !string_is_number(_str) { return false; }
 	var _negative = string_char_at(_str, 1) == "-";
-	return _negative ? -real(string_digits(_str)) : real(string_digits(_str));
+	return _negative ? -real(string_digits(_str)) : real(string_digits(_str)); //TODO: Make this use math instead of an ternary (optimization)
 }
 #endregion
 #endregion
 #region CONSOLE COMMANDS
-//con.commands = ds_map_create(); // Old system used DS maps
 con.commands = {
-	data: {},
-	aliases: {},
+	funcs: {},
+	metas: {},
 };
 
-con_add_command("cmds", "List of commands. Call on a command to see it's description.", function(_args)
+con_add_command(new ConCommandMeta
+(
+	"help", // ConCommandMeta: name
+	"Lists all commands. Call on a command to see it's description.", // ConCommandMeta: description
+	[
+		new ConCommandArg("command", "string", "Specific command to get information about.", true), // ConCommandMeta: arguments (Array of `ConCommandArg`s). This is arg 1
+		//new ConCommandArg("example_optional_arg", "bool", true)
+	], 
+	["cmds", "commands"] // ConCommandMeta: aliases
+), 
+
+function(_args) // Function
 {
-	var _ret = "";
-	for (var i = 0; i < array_length(struct_get_names(con.commands.data)); i++)
+	if (array_length(_args) < 2) // No arguments provided (_args[0] is the command name)
 	{
-		_ret += $"{struct_get_names(con.commands.data)[i]}, ";
+		var _ret = "";
+		for (var i = 0; i < struct_names_count(con.commands.funcs); i++)
+		{
+			_ret += $"{struct_get_names(con.commands.funcs)[i]}, ";
+		}
+		_ret = string_copy(_ret, 1, string_length(_ret) - 2);
+		return _ret;
 	}
-	_ret = string_copy(_ret, 1, string_length(_ret) - 2);
-	con_log(con.enums.logtype.log, _ret);
-}, ["help", "commands"]);
+	else
+	{
+		var _ret = "";
+		var _cmd = con_translate_alias(con_get_arg(_args, 1));
+		if (_cmd == false) { con_log(con.enums.logtype.err, $"Invalid command/alias was specified: `{con_get_arg(_args, 1)}`"); return; } // Using `!_cmd` would throw an error
+		var _meta = con.commands.metas[$ _cmd];
+		var _cmdargs = _meta.arguments;
+		var _cmdargs_fmt = ""; // Formatted args
+		for (var i = 0; i < array_length(_meta.arguments); i++)
+		{
+			// Feather disable once GM1100
+			_cmdargs_fmt += $"\t{_cmdargs[i].arg}<{_cmdargs[i].type}>{_cmdargs[i].optional ? " (optional) " : ""}{array_length(_cmdargs[i].values) >= 1 ? $" (takes the following values, separated by |: `{string_join_ext("|", _cmdargs[i].values)}`)" : ""}: {_cmdargs[i].description}\n";
+		}
+		// Feather disable once GM1100
+		_ret = $"\n{_meta.name}: {_meta.description}\n{_meta.arguments != [] ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n{_meta.aliases != [] ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases"}";
+		return _ret;
+	}
+});
 
+con_add_command(new ConCommandMeta
+(
+	"quit",
+	"Exits the game.",
+	[],
+	["exit", "stop"],
+), 
+function(_args)
+{
+	game_end();
+});
 
+// OLD COMMANDS - TODO: REMAKE THESE
+/*
 con_add_command("quit", "Exits the game.", function(_args) 
 {
 	game_end(); 
@@ -365,7 +466,7 @@ if (!is_undefined(live_enabled) && live_enabled)
 		_call = string_copy(_call, 1, string_length(_call) - 1); // Remove trailing space
 		if (live_execute_string(_call)) { return live_result; } else { con_log(con.enums.logtype.err, $"Command failed to execute: {string(live_result)}"); }
 	});
-}
+}*/
 
 /*
 // TEMPLATE COMMAND

@@ -4,6 +4,7 @@
 // absolutely no effect.
 // Feather disable GM2047
 // Feather disable GM1021
+// Feather disable GM2017
 if (false) {
 	var v = undefined;
 	var f = undefined;

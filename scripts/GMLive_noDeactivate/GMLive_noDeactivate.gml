@@ -1,5 +1,6 @@
 // Prevents the common mistake of accidentally deactivating GMLive, breaking live-reloading
 // If you know what you're doing, you can get rid of this
+/// Feather disable GM2017
 #macro instance_deactivate_all instance_deactivate_all_hook
 #macro instance_deactivate_all_base instance_deactivate_all
 function instance_deactivate_all_hook(_notme) {
