@@ -31,7 +31,7 @@ con = {}; // This is our console's struct!
 global.__con = id;
 con.open = false;
 con.hasgmlive = asset_get_index("obj_gmlive") != -1
-con.version = "0.3.00.02";
+con.version = "0.3.00.03-dev";
 con.latest_version = "";
 con.github = {
 	link: "https://github.com/Reycko/GMConsole",
