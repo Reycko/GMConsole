@@ -202,9 +202,10 @@ function con_open()
 	display_set_gui_size(con.guisize[0], con.guisize[1]);
 	var _deactivation_index = [];
 	var _console = id;
+	var gmlive = con.hasgmlive 
 	with (all)
 	{
-		if (id != _console && con.hasgmlive 
+		if (id != _console && gmlive
 		&& (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
 		{
 			array_push(_deactivation_index, self);
