@@ -30,7 +30,7 @@ con = {}; // This is our console's struct!
 #region Others (pre-enum)
 global.__con = id;
 con.open = false;
-con.version = "0.3.00.00";
+con.version = "0.3.00.01";
 con.latest_version = "";
 con.github = {
 	link: "https://github.com/Reycko/GMConsole",

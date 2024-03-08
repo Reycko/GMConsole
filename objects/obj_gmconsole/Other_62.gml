@@ -7,7 +7,7 @@ if (async_load[? "id"] == con.github.get_req.req)
 	{
 		// The old format was MAJOR.VERSION.MINOR or simply MAJOR.VERSION
 		// as of 0.3.00.00, the format is MAJOR.VERSION.MINOR.HOTFIX(.DEV/RC[1-9])
-		con.latest_version = string_replace_all(async_load[? "result"], "\n", ""); // X.X.XX.XX(.DEV/RC[1-9])
+		con.latest_version = string_replace_all(string_replace_all(async_load[? "result"], "\n", ""), " ", ""); // X.X.XX.XX(.DEV/RC[1-9])
 		con.outdated = (con.version == con.latest_version ? con.enums.outdated.no : con.enums.outdated.yes);
 		con.github.get_req.req = undefined;
 	}
