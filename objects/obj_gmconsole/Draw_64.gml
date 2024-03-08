@@ -56,6 +56,7 @@ if (con.open)
 	var prevfnt = draw_get_font();
 	draw_set_font(fnt_console);
 	#endregion
+	
 	#region rect and top text
 	// Rectangle
 	draw_set_color(con.ui.background.color);
@@ -66,6 +67,7 @@ if (con.open)
 	// Text
 	draw_set_align(fa_left, fa_top);
 	draw_set_color(con.ui.text.colors.def);
+	
 	var _outdated_txt = con.strings.outdated[$ con_enum_get_name("outdated", con.outdated)];
 	// Feather disable once GM1100
 	// Feather disable once GM1063
@@ -77,21 +79,26 @@ if (con.open)
 	draw_set_color(con.ui.text.colors.def);
 	draw_text(0, string_height("M"), $"{con.strings.top.gm} v{GM_runtime_version}"); // Console font is monospace so any character will be the same height
 	draw_set_halign(fa_right);
+	
 	var _build_date_txt = $"{con.strings.top.builddate} {date_datetime_string(GM_build_date)}";
 	var _build_type_txt = (con.build.release ? (con.build.compiled ? con.strings.build.compiled : con.strings.build.release) : con.strings.build.test);
 	_build_type_txt += $" {con.strings.build.build}"
 	var _build_type_clr = (con.build.release ? (con.build.compiled ? c_green : c_white) : c_red);
+	
 	draw_text(con.guisize[0], 0, _build_date_txt);
 	draw_set_color(_build_type_clr);
 	draw_text(con.guisize[0], string_height("M"), _build_type_txt);
 	// End (Cleanup)
 	draw_set_color(con.ui.separator.col);
 	draw_set_alpha(con.ui.separator.opacity);
+	
 	var _h = string_height("M\nM") + con.ui.separator.width;
+	
 	draw_line_width(0, _h, con.guisize[0], _h, con.ui.separator.width);
 	draw_set_alpha(con.ui.separator.opacity);
 	#endregion
 	#region console output
+	
 	draw_set_alpha(con.ui.text.output.opacity);
 	var _ypos = string_height("M\nM") + 8 + con.ui.separator.width;
 	draw_set_font(fnt_console_small);
@@ -204,6 +211,7 @@ if (con.open)
 	draw_set_color(con.ui.separator.col);
 	draw_set_alpha(con.ui.separator.opacity);
 	draw_set_font(fnt_console);
+	
 	_h = con.guisize[1] - string_height("M\nM") + con.ui.separator.width;
 	draw_line_width(0, _h, con.guisize[0], _h, con.ui.separator.width);
 	draw_set_align(fa_left, fa_bottom);

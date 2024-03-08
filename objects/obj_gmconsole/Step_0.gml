@@ -52,7 +52,8 @@ if (con.open)
 				con.easteregg.konami = 0; // Reset
 			break;
 		}
-		
+    
+
 		if (keyboard_check_pressed(_check))
 		{
 			con.easteregg.konami++;
@@ -60,7 +61,8 @@ if (con.open)
 		{
 			con.easteregg.konami = 0;
 		}
-		
+
+
 		if (con.easteregg.konami == 10)
 		{
 			instance_destroy(self); // Sorry anyone that expected something cool

@@ -30,6 +30,7 @@ con = {}; // This is our console's struct!
 #region Others (pre-enum)
 global.__con = id;
 con.open = false;
+con.hasgmlive = asset_get_index("obj_gmlive") != -1
 con.version = "0.3.00.02";
 con.latest_version = "";
 con.github = {
@@ -53,6 +54,7 @@ con.deactivation = []; // this is used for opening and closing console
 con.screenshot = -1;
 con.easteregg = {
 	konami: 0,
+}	
 }
 #endregion
 #region Console UI customization
@@ -151,6 +153,11 @@ con.strings = {
 			expected: "expected",
 			got: "got",
 			extra_argument: "Extra argument",
+			
+			con_convert_value: {
+				couldnt_convert: "Couldn't convert type",
+				to: "to",
+			},
 		},
 		
 		con_convert_value: {
@@ -209,9 +216,11 @@ function con_open()
 	display_set_gui_size(con.guisize[0], con.guisize[1]);
 	var _deactivation_index = [];
 	var _console = id;
+	var gmlive = con.hasgmlive 
 	with (all)
 	{
-		if (id != _console && (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
+		if (id != _console && gmlive
+		&& (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
 		{
 			array_push(_deactivation_index, self);
 			instance_deactivate_object(self);

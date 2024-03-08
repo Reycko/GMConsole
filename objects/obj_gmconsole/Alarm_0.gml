@@ -50,8 +50,8 @@ function(_args, _arg_count) // Function
 		
 		_ret = $"\n{_meta.name}: {_meta.description}\n";
 		// Feather disable once GM1100
-		_ret += $"({_meta.arguments != [] ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n";
-		_ret += (_meta.aliases != [] ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases");
+		_ret += $"({array_length(_meta.arguments) != 0 ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n";
+		_ret += (array_length(_meta.aliases) != 0 ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases");
 		return _ret;
 	}
 });
@@ -134,7 +134,6 @@ function(_args, _arg_count)
 	}
 	return game_get_speed(_type);
 });
-
 
 con_add_command(new ConCommandMeta
 (
