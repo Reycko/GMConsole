@@ -50,7 +50,7 @@ function(_args, _arg_count) // Function
 		
 		_ret = $"\n{_meta.name}: {_meta.description}\n";
 		// Feather disable once GM1100
-		_ret += $"({array_length(_meta.arguments) != 0 ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n";
+		_ret += $"{array_length(_meta.arguments) != 0 ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n";
 		_ret += (array_length(_meta.aliases) != 0 ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases");
 		return _ret;
 	}
