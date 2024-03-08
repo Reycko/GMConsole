@@ -55,7 +55,6 @@ con.screenshot = -1;
 con.easteregg = {
 	konami: 0,
 }	
-}
 #endregion
 #region Console UI customization
 con.ui = {
