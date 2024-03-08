@@ -203,7 +203,7 @@ function con_open()
 	var _console = id;
 	with (all)
 	{
-		if (id != _console && (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
+		if (id != _console)
 		{
 			array_push(_deactivation_index, self);
 			instance_deactivate_object(self);
