@@ -47,7 +47,7 @@
     {"id":{"name":"GMLive_action","path":"scripts/GMLive_action/GMLive_action.yy",},},
     {"id":{"name":"obj_gmlive","path":"objects/obj_gmlive/obj_gmlive.yy",},},
     {"id":{"name":"GMLive_roomLoader","path":"scripts/GMLive_roomLoader/GMLive_roomLoader.yy",},},
-    {"id":{"name":"obj_template","path":"objects/obj_template/obj_template.yy",},},
+    {"id":{"name":"obj_background","path":"objects/obj_background/obj_background.yy",},},
     {"id":{"name":"fnt_console_small","path":"fonts/fnt_console_small/fnt_console_small.yy",},},
     {"id":{"name":"fnt_console","path":"fonts/fnt_console/fnt_console.yy",},},
     {"id":{"name":"GMLive_token","path":"scripts/GMLive_token/GMLive_token.yy",},},

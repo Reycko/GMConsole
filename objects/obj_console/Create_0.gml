@@ -76,7 +76,7 @@ con.ui = {
 	},
 };
 #endregion
-#region Strings n stuff
+#region Strings
 con.strings = {
 	game: "Game",
 	game_version: "1.0",
@@ -103,7 +103,7 @@ con.strings = {
 		returned: "Command returned",
 		couldnt_exec: "Couldn't execute command:",
 		invalid: "Invalid command,",
-		invalid_cmds: "you can see a list of commands with `cmds`",
+		invalid_help: "you can see a list of commands with `help`",
 		line: "line",
 		types: {
 			string: "string",
@@ -116,6 +116,14 @@ con.strings = {
 			undefined: "nothing",
 		},
 		no_print: "Command did not print anything"
+	},
+	commands: {
+		con_get_arg: {
+			argument: "Argument",
+			expected: "expected",
+			got: "got",
+			extra_argument: "Extra argument",
+		}
 	},
 };
 #endregion
@@ -148,7 +156,7 @@ function con_open()
 	var _console = id;
 	with (all)
 	{
-		if (id != _console)
+		if (id != _console && (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
 		{
 			array_push(_deactivation_index, self);
 			instance_deactivate_object(self);
@@ -178,7 +186,6 @@ function con_close()
 }
 #endregion
 #region Log to console
-// Inverting the arguments in this weirdly causes isues
 // Feather disable once GM1056
 /// @param	{Struct.con.enums.logtype}	_type
 /// @param	{Any}						_text
@@ -200,7 +207,10 @@ function con_log(_type = con.enums.logtype.log, _text)
 function ConCommandArg(_arg, _type, _description, _optional = false, _values = []) constructor
 {
 	arg = _arg;
-	type = _type;
+	var _newtype = _type;
+	if (_newtype == "real") { _newtype = "number"; } // Prevent typoing number as real
+	if (!array_contains(["string", "number", "int64", "struct", "any"], typeof(_newtype))) { con_log(con.enums.logtype.warn, $"A command tried to use invalid type {_type}, so it was changed to `any`."); _newtype = "any"; }
+	type = _newtype; 
 	description = _description;
 	optional = _optional;
 	values = _values;
@@ -211,7 +221,7 @@ function ConCommandArg(_arg, _type, _description, _optional = false, _values = [
 /// @param	{Array<String>}					_aliases		Command aliases.
 function ConCommandMeta(_name, _description, _arguments = [], _aliases = []) constructor
 {
-	name = _name;
+	name = string_replace_all(_name, " ", "_");
 	description = _description;
 	arguments = _arguments;
 	aliases = _aliases;
@@ -220,7 +230,6 @@ function ConCommandMeta(_name, _description, _arguments = [], _aliases = []) con
 #region Command-related functions
 /// @function												con_add_command(name, description, function, aliases)
 /// @description											Add a console command.
-///															If success, returns true, else returns the exception struct.
 /// @param			{Struct.ConCommandMeta}	_meta			The name of the command to add.
 /// @param			{Function}				_func			The function to execute. Add an argument as a 
 ///															parameter to get command arguments.
@@ -232,23 +241,85 @@ function con_add_command(_meta, _func)
 }
 #endregion
 #region Others
+/// @param		{Array<String>}	_args	Contains arguments, make them strings, they will be converted.
+/// @returns	{Any}					Success => Command's return; Fail => undefined
+function con_call_command(_args = [])
+{
+	try
+	{
+		//var _cur_output_size = ds_list_size(con.output) + 1;
+		con_log(con.enums.logtype.none, $">{string_join_ext(" ", _args)}");
+		// Feather disable once GM2016
+		var _cmdargs = [];
+		array_copy(_cmdargs, 0, _args, 0, array_length(_args));
+		_cmdargs[0] = con_translate_alias(_cmdargs[0]);
+		try // Silently fail if extra args are provided
+		{
+			for (var i = 1; i < array_length(_cmdargs); i++)
+			{
+				_cmdargs[i] = con_get_arg(_cmdargs, i);
+			}
+		}
+		var _ret = con.commands.funcs[$ _cmdargs[0]](_cmdargs, array_length(_cmdargs) - 1);
+		//if _cur_output_size == ds_list_size(con.output) { con_log(con.enums.logtype.log, $"{con.strings.cmdbar.no_print}"); }
+		// Feather disable once GM1100
+		// Feather disable once GM1063
+		// Feather disable once GM1012
+		if (_ret != "%h") { con_log(con.enums.logtype.log, $"{con.strings.cmdbar.returned} {(string_pos(typeof(_ret), "string|number|int32|int64|bool|struct|array") != 0 ? $"{con.strings.cmdbar.types[$ typeof(_ret)]}: {string(_ret)}" : (typeof(_ret) == "undefined" ? con.strings.cmdbar.types.undefined : typeof(_ret)))}"); } // Woah this line is atrociously long
+		return _ret;
+	}
+	catch (e)
+	{
+		var _invalid_cmd = string_ends_with(e.message, "Invalid callv target #2"); //TODO: More consistent method
+		// Feather disable once GM1063
+		// Feather disable once GM1100
+		con_log(con.enums.logtype.err, $"{con.strings.cmdbar.couldnt_exec} {_invalid_cmd ? $"{con.strings.cmdbar.invalid} {con.strings.cmdbar.invalid_help}" : $"{e.message} @ {e.script} {con.strings.cmdbar.line} {e.line}"}");
+		return undefined;
+	}
+}
+
 /// @param		{String}	_val		Input value.
 /// @param		{String}	_to			Tries to convert _val to this.
 /// @returns	{Any}
 function con_convert_value(_val, _to)
 {
-	switch (_to)
+	try
 	{
-		case "string": return string(_val);
-		case "real": case "number": return real(_val);
-		case "int64": return int64(_val);
+		switch (_to)
+		{
+			case "string": return string(_val);
+			case "number": return real(string_to_number(_val));
+			case "int64": return int64(_val);
+			case "struct": return json_parse(_val);
+			case "any": return _val;
+		}
 	}
 	/*con_log(con.enums.logtype.err, $"con_convert_value(): Invalid or unsupported type `{_to}`.");
 	return undefined;*/
-	throw($"con_convert_value(): Invalid or unsupported type `{_to}`.");
-	return undefined;
+	catch (_e)
+	{
+		con_log(con.enums.logtype.debug, $"con_convert_value(): Unable to convert {typeof(_val)} to `{_to}`.");
+		return undefined;
+	}
 }
 
+/// @param	{Array}		_args		Arguments array.
+/// @param	{Real}		_index		Index of the array to check.
+/// @returns {Bool}
+function con_arg_valid(_args, _index)
+{
+	var _meta = con.commands.metas[$ _args[0]];
+	if (_index > array_length(_args) - 1) { return false; }
+	var _arg_meta = _meta.arguments[_index - 1];
+	if (array_length(_arg_meta.values) >= 1)
+	{
+		if (!array_contains(_arg_meta.values, _args[_index])) { return false; }
+	}
+	return true;
+}
+
+/// @description							Note: this command is no longer necessary, as con_call_command calls this on all args.
+///											Note 2: This does NOT account for missing arguments, you will need to check this.
 /// @param		{Array<String>}	_args		Contents of the command's `args` array.
 /// @param		{Real}			_index		Index of the args array to get the value from.
 /// @returns	{Any}						argument, converted based on it's meta.
@@ -256,21 +327,23 @@ function con_get_arg(_args, _index)
 {
 	// TODO: Implement this in a way that `args` directly gives these! (Step code?)
 	// TODO: Convert all the text here to con.strings
-	var _arg_meta = con.commands.metas[$ _args[0]].arguments[_index - 1];
+	var _meta = con.commands.metas[$ _args[0]];
+	if (_index >= array_length(_meta.arguments) + 1) { con_log(con.enums.logtype.warn, $"{con.strings.commands.con_get_arg.extra_argument} {_index}"); return undefined; } // Extra args
+	var _arg_meta = _meta.arguments[_index - 1];
+	
 	if (_index == 0) { return _arg_meta.name; }
-	var _fail = [false, ""];
-	if (_index >= array_length(_args)) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}"]; }
-	if (is_undefined(_args[_index])) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}"]; }
+	if (_index >= array_length(_args)) { con_log(con.enums.logtype.err, $"{con.strings.commands.con_get_arg.argument} {_index}: {con.strings.commands.con_get_arg.expected} {_arg_meta.type}"); return undefined; }
+	if (is_undefined(_args[_index])) { con_log(con.enums.logtype.err, $"{con.strings.commands.con_get_arg.argument} {_index}: {con.strings.commands.con_get_arg.expected} {_arg_meta.type}"); return undefined; }
 	
 	var _arg = con_convert_value(_args[_index], _arg_meta.type);
-	if (typeof(_arg) != _arg_meta.type) { _fail = [true, $"Argument {_index}: expected {_arg_meta.type}, got {typeof(_arg)}"]; }
+	if (typeof(_arg) == "undefined" && (string_pos(_arg_meta.type, "undefined|any") != 0) && !_arg_meta.optional) { con_log(con.enums.logtype.err, $"{con.strings.commands.con_get_arg.argument} {_index}: {con.strings.commands.con_get_arg.expected} {_arg_meta.type}, {con.strings.commands.con_get_arg.got} {typeof(_args[_index])}"); return undefined; }
+	if (typeof(_arg) != _arg_meta.type) { con_log(con.enums.logtype.err, $"{con.strings.commands.con_get_arg.argument} {_index}: {con.strings.commands.con_get_arg.expected} {_arg_meta.type}, {con.strings.commands.con_get_arg.got} {typeof(_arg)}"); return undefined; }
 	
 	if (array_length(_arg_meta.values) >= 1)
 	{
-		if (!array_contains(_arg_meta.values, _arg)) { _fail = [true, $"Argument {_index}: expected `{string_join_ext("`|`", _arg_meta.values)}`, got {_arg}"]; }
+		if (!array_contains(_arg_meta.values, _arg)) { con_log(con.enums.logtype.err, $"{con.strings.commands.con_get_arg.argument} {_index}: {con.strings.commands.con_get_arg.expected} `{string_join_ext("`|`", _arg_meta.values)}`, {con.strings.commands.con_get_arg.got} {_arg}"); return undefined; }
 	}
 	
-	if (_fail[0]) { throw(_fail[1]); }
 	return _arg;
 }
 
@@ -328,157 +401,13 @@ function string_to_number(_str)
 }
 #endregion
 #endregion
-#region CONSOLE COMMANDS
+
+#region Define commands struct and load commands
 con.commands = {
 	funcs: {},
 	metas: {},
 };
 
-con_add_command(new ConCommandMeta
-(
-	"help", // ConCommandMeta: name
-	"Lists all commands. Call on a command to see it's description.", // ConCommandMeta: description
-	[
-		new ConCommandArg("command", "string", "Specific command to get information about.", true), // ConCommandMeta: arguments (Array of `ConCommandArg`s). This is arg 1
-		//new ConCommandArg("example_optional_arg", "bool", true)
-	], 
-	["cmds", "commands"] // ConCommandMeta: aliases
-), 
-
-function(_args) // Function
-{
-	if (array_length(_args) < 2) // No arguments provided (_args[0] is the command name)
-	{
-		var _ret = "";
-		for (var i = 0; i < struct_names_count(con.commands.funcs); i++)
-		{
-			_ret += $"{struct_get_names(con.commands.funcs)[i]}, ";
-		}
-		_ret = string_copy(_ret, 1, string_length(_ret) - 2);
-		return _ret;
-	}
-	else
-	{
-		var _ret = "";
-		var _cmd = con_translate_alias(con_get_arg(_args, 1));
-		if (_cmd == false) { con_log(con.enums.logtype.err, $"Invalid command/alias was specified: `{con_get_arg(_args, 1)}`"); return; } // Using `!_cmd` would throw an error
-		var _meta = con.commands.metas[$ _cmd];
-		var _cmdargs = _meta.arguments;
-		var _cmdargs_fmt = ""; // Formatted args
-		for (var i = 0; i < array_length(_meta.arguments); i++)
-		{
-			// Feather disable once GM1100
-			_cmdargs_fmt += $"\t{_cmdargs[i].arg}<{_cmdargs[i].type}>{_cmdargs[i].optional ? " (optional) " : ""}{array_length(_cmdargs[i].values) >= 1 ? $" (takes the following values, separated by |: `{string_join_ext("|", _cmdargs[i].values)}`)" : ""}: {_cmdargs[i].description}\n";
-		}
-		// Feather disable once GM1100
-		_ret = $"\n{_meta.name}: {_meta.description}\n{_meta.arguments != [] ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n{_meta.aliases != [] ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases"}";
-		return _ret;
-	}
-});
-
-con_add_command(new ConCommandMeta
-(
-	"quit",
-	"Exits the game.",
-	[],
-	["exit", "stop"],
-), 
-function(_args)
-{
-	game_end();
-});
-
-// OLD COMMANDS - TODO: REMAKE THESE
-/*
-con_add_command("quit", "Exits the game.", function(_args) 
-{
-	game_end(); 
-}, ["exit", "stop"]);
-con_add_command("restart", "Restarts the game.", function(_args) 
-{ 
-	game_restart(); 
-}, ["reboot"]);
-con_add_command("time", "Shows date_current_datetime() and it's string result.", function(_args)
-{
-	return $"{date_current_datetime()}|{date_datetime_string(date_current_datetime())}";
-});
-
-con_add_command("aliases", "Lists all aliases.", function(_args)
-{
-	var _return = "";
-	_ret = "";
-	struct_foreach(con.commands.aliases, function(_key, _value)
-	{
-		_ret += $"{_key} -> {_value}; ";
-	});
-	_return = string_copy(_ret, 1, string_length(_ret) - 2);
-	_ret = undefined;
-	return _return;
-}, ["alias"]);
-
-con_add_command("clear", "Clears console.", function(_args)
-{
-	ds_list_clear(con.output);
-	return ds_list_empty(con.output);
-}, ["cls"]);
-
-con_add_command("speed", "Get or adjust game speed.", function(_args)
-{
-	var _type = con_get_arg_safe(_args, 1);
-	if (is_undefined(_type)) { return; }
-	if (string_pos(_type, "set|get") == 0) { con_log(con.enums.logtype.err, "Invalid argument 1"); return; }
-	var _mode = con_get_arg_safe(_args, 2);
-	if (is_undefined(_mode)) { return; }
-	if (string_pos(_mode, "fps|us") == 0) { con_log(con.enums.logtype.err, "Invalid argument 2"); return; }
-	_mode = _mode == "fps" ? gamespeed_fps : gamespeed_microseconds;
-	var _to = undefined; // Ironically defining as undefined
-	if (_type == "set")
-	{
-		_to = con_get_arg_safe(_args, 3);
-		if (is_undefined(_to)) { return; }
-		_to = string_to_number(_to);
-		if (_to == false) { con_log(con.enums.logtype.err, "Invalid argument 3"); return; }
-	}
-	
-	switch (_type)
-	{
-		case "set":
-			game_set_speed(_to, _mode);
-			return game_get_speed(_mode) == _to;
-		break;
-		case "get":
-			return game_get_speed(_mode);
-		break;
-	}
-});
-
-if (!is_undefined(live_enabled) && live_enabled)
-{
-	con_add_command("eval", "Run a command live using GMLive.", function(_args)
-	{
-		var _args2 = [];
-		array_copy(_args2, 0, _args, 1, array_length(_args) - 1);
-		var _call = "";
-		for (var i = 0; i < array_length(_args2); i++)
-		{
-			_call += $"{_args2[i]} ";
-		}
-		_call = string_copy(_call, 1, string_length(_call) - 1); // Remove trailing space
-		if (live_execute_string(_call)) { return live_result; } else { con_log(con.enums.logtype.err, $"Command failed to execute: {string(live_result)}"); }
-	});
-}*/
-
-/*
-// TEMPLATE COMMAND
-con_add_command("mycommand", "Example command!", function(_args)
-{
-	show_message("I'm such a silly function!");
-	con_log(con.enums.logtype.log, string(_args)); // Prints out all arguments including command
-}, ["alias1", "alias2"], // You can now call "mycommand" using "alias1" or "alias2"
-function(_e) // Optional argument, error handler.
-{
-	show_message("This is a custom error handler!");
-	show_message($"Exception: {string(_e)}");
-});
-*/
+event_perform(ev_alarm, 0); // Load built-in commands
+event_perform(ev_alarm, 1); // Load custom commands
 #endregion

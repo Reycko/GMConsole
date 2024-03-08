@@ -133,7 +133,7 @@ if (con.open)
 		}
 	}
 	#endregion
-	#region NEWLINE HANDLING! FINALLY GOT AN IDEA ON HOW TO DO THIS WITHOUT REWRITING ALL THE DRAW CODE!
+	#region Newline handling
 	var _newlist = ds_list_create();
 	for (var i = 0; i < ds_list_size(_conout); i++)
 	{
