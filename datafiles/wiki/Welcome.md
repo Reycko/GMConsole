@@ -1,6 +1,6 @@
 # Welcome!
 This is a short page on where to start reading the wiki.  
-<center><span style="color:yellow;"><img src="./img/emoji/information.png" alt="[Information]" width=20px/> This page is made for developers only.</span></center>
+<center><span style="color:yellow;"><img src="./img/emoji/information.png" alt="[Information]" width=20px/> This page is made for users and developers.</span></center>
 
 ---
 <span style="color:yellow;"><img src="./img/emoji/information.png" alt="[Information]" width=20px/>The wiki is currently a WiP (Work in Progress)</span>  
