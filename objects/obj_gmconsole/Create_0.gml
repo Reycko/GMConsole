@@ -55,6 +55,7 @@ con.screenshot = -1;
 con.easteregg = {
 	konami: 0,
 }	
+}
 #endregion
 #region Console UI customization
 con.ui = {
@@ -157,6 +158,11 @@ con.strings = {
 				couldnt_convert: "Couldn't convert type",
 				to: "to",
 			},
+		},
+		
+		con_convert_value: {
+			couldnt_convert: "Couldn't convert type",
+			to: "to",
 		},
 	},
 	outdated: {
