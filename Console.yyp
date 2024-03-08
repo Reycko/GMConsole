@@ -36,9 +36,14 @@
   ],
   "IncludedFiles": [
     {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Basics.md","CopyToMask":-1,"filePath":"datafiles/wiki",},
+    {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Basics.md.backup","CopyToMask":-1,"filePath":"datafiles/wiki",},
+    {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Home.md","CopyToMask":-1,"filePath":"datafiles/wiki",},
+    {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Home.md.backup","CopyToMask":-1,"filePath":"datafiles/wiki",},
     {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"console-parts.png","CopyToMask":-1,"filePath":"datafiles/wiki/img",},
+    {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"console-settings.png","CopyToMask":-1,"filePath":"datafiles/wiki/img",},
     {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"information.png","CopyToMask":-1,"filePath":"datafiles/wiki/img/emoji",},
     {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Integrating.md","CopyToMask":-1,"filePath":"datafiles/wiki",},
+    {"resourceType":"GMIncludedFile","resourceVersion":"1.0","name":"Integrating.md.backup","CopyToMask":-1,"filePath":"datafiles/wiki",},
   ],
   "isEcma": false,
   "LibraryEmitters": [],
@@ -46,6 +51,7 @@
     "IDEVersion": "2023.11.1.129",
   },
   "resources": [
+    {"id":{"name":"obj_gmlive","path":"objects/obj_gmlive/obj_gmlive.yy",},},
     {"id":{"name":"GMLive_node","path":"scripts/GMLive_node/GMLive_node.yy",},},
     {"id":{"name":"gmconsole_init","path":"scripts/gmconsole_init/gmconsole_init.yy",},},
     {"id":{"name":"GMLiveAPI_js","path":"scripts/GMLiveAPI_js/GMLiveAPI_js.yy",},},

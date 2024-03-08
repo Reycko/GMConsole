@@ -30,11 +30,11 @@ con = {}; // This is our console's struct!
 #region Others (pre-enum)
 global.__con = id;
 con.open = false;
-con.version = "0.3.00.01";
+con.version = "0.3.00.02";
 con.latest_version = "";
 con.github = {
 	link: "https://github.com/Reycko/GMConsole",
-	branch: (string_ends_with(con.version, "-dev") ? "master" : "stable"),
+	branch: (con_is_stable(con.version) ? "stable" : "master"),
 }
 con.github.get_req = { // Defining it right after defining con.github is important to avoid a crash w `link`
 	link: $"https://raw.github.com/Reycko/GMConsole/{con.github.branch}/ver.txt",
@@ -51,6 +51,9 @@ con.game_guisize = [display_get_gui_width(), display_get_gui_height()];
 con.guisize = [1280, 720];
 con.deactivation = []; // this is used for opening and closing console
 con.screenshot = -1;
+con.easteregg = {
+	konami: 0,
+}
 #endregion
 #region Console UI customization
 con.ui = {
@@ -148,6 +151,11 @@ con.strings = {
 			expected: "expected",
 			got: "got",
 			extra_argument: "Extra argument",
+		},
+		
+		con_convert_value: {
+			couldnt_convert: "Couldn't convert type",
+			to: "to",
 		},
 	},
 	outdated: {
@@ -256,22 +264,24 @@ function ConCommandArg(_arg, _type, _description, _optional = false, _values = [
 	arg = _arg;
 	var _newtype = _type;
 	if (_newtype == "real") { _newtype = "number"; } // Prevent typoing number as real
-	if (!array_contains(["string", "number", "int64", "struct", "any"], typeof(_newtype))) { con_log(con.enums.logtype.warn, $"A command tried to use invalid type {_type}, so it was changed to `any`."); _newtype = "any"; }
+	if (!array_contains(["string", "all", "number", "int64", "struct", "any"], _newtype)) { con_log(con.enums.logtype.warn, $"A command tried to use invalid type {_type}, so it was changed to `any`."); _newtype = "any"; }
 	type = _newtype; 
 	description = _description;
 	optional = _optional;
 	values = _values;
 }
-/// @param	{String}						_name			Command name.
-/// @param	{String}						_description	Command description.
-/// @param	{Array<Struct.ConCommandArg>}	_arguments		Arguments for the command.
-/// @param	{Array<String>}					_aliases		Command aliases.
-function ConCommandMeta(_name, _description, _arguments = [], _aliases = []) constructor
+/// @param	{String}						_name				Command name.
+/// @param	{String}						_description		Command description.
+/// @param	{Array<Struct.ConCommandArg>}	_arguments			Arguments for the command.
+/// @param	{Array<String>}					_aliases			Command aliases.
+/// @param	{Bool}							_allow_extra_args	If true, will allow extra arguments.
+function ConCommandMeta(_name, _description, _arguments = [], _aliases = [], _allow_extra_args = false) constructor
 {
 	name = string_replace_all(_name, " ", "_");
 	description = _description;
 	arguments = _arguments;
 	aliases = _aliases;
+	allow_extra_args = _allow_extra_args;
 }
 #endregion
 #region Command-related functions
@@ -317,8 +327,8 @@ function con_enum_get_name(_enum, _val)
 	return _inv_struct[$ _val];
 }
 #endregion
-/// @param		{Array<String>}	_args	Contains arguments, make them strings, they will be converted.
-/// @returns	{Any}					Success => Command's return; Fail => undefined
+/// @param		{Array<String>}	_args		Contains arguments, make them strings, they will be converted.
+/// @returns	{Any}						Success => Command's return; Fail => undefined
 function con_call_command(_args = [])
 {
 	try
@@ -329,6 +339,7 @@ function con_call_command(_args = [])
 		var _cmdargs = [];
 		array_copy(_cmdargs, 0, _args, 0, array_length(_args));
 		_cmdargs[0] = con_translate_alias(_cmdargs[0]);
+		if (!struct_exists(con.commands.funcs, _cmdargs[0])) { con_log(con.enums.logtype.err, $"{con.strings.cmdbar.couldnt_exec} {con.strings.cmdbar.invalid} {con.strings.cmdbar.invalid_help}"); return undefined; }
 		try // Silently fail if extra args are provided
 		{
 			for (var i = 1; i < array_length(_cmdargs); i++)
@@ -364,6 +375,7 @@ function con_convert_value(_val, _to)
 		switch (_to)
 		{
 			case "string": return string(_val);
+			case "string_all": return string(_val);
 			case "number": return real(string_to_number(_val));
 			case "int64": return int64(_val);
 			case "struct": return json_parse(_val);
@@ -374,7 +386,7 @@ function con_convert_value(_val, _to)
 	return undefined;*/
 	catch (_e)
 	{
-		con_log(con.enums.logtype.debug, $"con_convert_value(): Unable to convert {typeof(_val)} to `{_to}`.");
+		con_log(con.enums.logtype.debug, $"con_convert_value(): {con.strings.commands.con_convert_value.couldnt_convert} {typeof(_val)} {con.strings.commands.con_convert_value.to} `{_to}`.");
 		return undefined;
 	}
 }
@@ -404,7 +416,8 @@ function con_get_arg(_args, _index)
 	// TODO: Implement this in a way that `args` directly gives these! (Step code?)
 	// TODO: Convert all the text here to con.strings
 	var _meta = con.commands.metas[$ _args[0]];
-	if (_index >= array_length(_meta.arguments) + 1) { con_log(con.enums.logtype.warn, $"{con.strings.commands.con_get_arg.extra_argument} {_index}"); return undefined; } // Extra args
+	if (_index >= array_length(_meta.arguments) + 1  && !_meta.allow_extra_args) { con_log(con.enums.logtype.warn, $"{con.strings.commands.con_get_arg.extra_argument} {_index}"); return undefined; } // Extra args
+	else if (_index >= array_length(_meta.arguments) + 1 && _meta.allow_extra_args) { return _args[_index]; }
 	var _arg_meta = _meta.arguments[_index - 1];
 	
 	if (_index == 0) { return _arg_meta.name; }
@@ -475,6 +488,8 @@ function string_to_number(_str)
 	var _negative = string_char_at(_str, 1) == "-";
 	return _negative ? -real(string_digits(_str)) : real(string_digits(_str)); //TODO: Make this use math instead of an ternary (optimization)
 }
+
+// con_is_stable() in gmconsole_init for it to be initialized before obj_gmconsole
 #endregion
 #endregion
 

@@ -135,23 +135,36 @@ function(_args, _arg_count)
 	return game_get_speed(_type);
 });
 
-if (instance_exists(obj_gmlive) && live_enabled) // Requires YellowAfterlife's GMLive
-{	
-	con_add_command(new ConCommandMeta
-	(
-		"eval",
-		"Run a string live using GMLive.",
-		[
-			new ConCommandArg("code", "string", "The code to execute."),
-		],
-		["execute", "run"],
-	),
-	function(_args, _arg_count)
+
+con_add_command(new ConCommandMeta
+(
+	"eval",
+	"Run GML through the console, requires GMLive by YellowAfterlife.",
+	[
+		new ConCommandArg("code", "string", "The code to execute.", false, [], true),
+	],
+	["execute", "run"],
+	true,
+),
+function(_args, _arg_count)
+{
+	if (_arg_count < 1) { con_log(con.enums.logtype.err, "Missing argument 1"); return "%h"; }
+	if (asset_get_index("obj_gmlive") == -1) { return "Missing GMLive"; }
+	if (is_undefined(live_enabled)) { return "Missing GMLive"; }
+	try
 	{
-		if (_arg_count < 1) { return "%h"; }
-		live_execute_string(_args[1]);
-	});
-}
+		var _exec = [];
+		array_copy(_exec, 0, _args, 1, array_length(_args) - 1); // Use array copy to prevent working on the real _args + shift by 1
+		live_execute_string(string_join_ext(" ", _exec));
+		return live_result;
+	}
+	catch (_e)
+	{
+		var _missing_gmlive = (string_starts_with(string_lower(_e.message), "variable <unknown_object>.live_execute_string") && string_ends_with(string_lower(_e.message), "not set before reading it."));
+		if (_missing_gmlive) { con_log(con.enums.logtype.err, "Missing GMLive"); return; }
+		con_log(con.enums.logtype.err, _e.message);
+	}
+});
 
 con_add_command(new ConCommandMeta
 (
