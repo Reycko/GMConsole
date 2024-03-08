@@ -30,7 +30,7 @@ To add commands, you need to use the `con_add_command()` function. (Note: You ca
 If you want to make sure that your commands will properly get added, the function `con_user_console_commands()` once all built-in commands have been added to the console.  
 Here are 2 template commands as an example, with comments.
 
-```
+```gml
 function con_user_console_commands()
 {
 	con_add_command(new ConCommandMeta
