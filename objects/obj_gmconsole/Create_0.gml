@@ -1,35 +1,52 @@
 /// @description Initialize `con` struct, Define functions
-if instance_number(obj_console) > 1
+if instance_number(obj_gmconsole) > 1
 {
 	instance_destroy(self); // Self destruct if a console already exists
 }
 
 con = {}; // This is our console's struct!
 /*
-	If you modify/add internal variables, then
-	make sure to define your vars in the con 
-	struct.
+	If you modify/add internal variables, then make sure to define your 
+	vars in the `con` struct.
 	
-	Only use object variables like temporary vars
-	that can be used in code for multiple events,
-	or in between a *_foreach() function.
+	Only use object variables like temporary vars that can be used in 
+	code for multiple events, or in between a *_foreach() function.
 	
-	The reason is for us to be able to define vars
-	like `x` or `visible` without using the built-
-	in variables for objects. -Reycko
+	The reason is for us to be able to define vars like `x` or `visible` 
+	without using the built-in variables for objects. -Reycko
 */
 
+/* 
+	Note: If you change the name of this object, PLEASE disable Feather's 
+	"Refactor references to asset name when asset is renamed in Asset Browser"
+	option (it breaks strings), also make sure to change the `gmc` macro 
+	in `gmconsole_init`.
+	
+	I learnt this the hard way when changing it's name from obj_console to 
+	obj_gmconsole in 0.3.00.00 lol
+*/
 // Settings at region: Console variables -> Console settings
 #region Console variables
-#region Others
+#region Others (pre-enum)
+global.__con = id;
 con.open = false;
-con.version = "0.2.4"
+con.version = "0.3.00.00";
+con.latest_version = "";
+con.github = {
+	link: "https://github.com/Reycko/GMConsole",
+	branch: (string_ends_with(con.version, "-dev") ? "master" : "stable"),
+}
+con.github.get_req = { // Defining it right after defining con.github is important to avoid a crash w `link`
+	link: $"https://raw.github.com/Reycko/GMConsole/{con.github.branch}/ver.txt",
+	req: undefined,
+}
+
 con.build = {
 	release: GM_build_type == "exe", // false = test run
 	compiled: code_is_compiled(),
 };
 con.output = ds_list_create();
-
+con.online = os_is_network_connected(network_connect_passive);
 con.game_guisize = [display_get_gui_width(), display_get_gui_height()];
 con.guisize = [1280, 720];
 con.deactivation = []; // this is used for opening and closing console
@@ -64,6 +81,16 @@ con.ui = {
 		col: c_white,
 		opacity: 0.5,
 	},
+	top: {
+		colors: {
+			outdated: {
+				unknown: c_yellow,
+				yes: c_red,
+				no: c_white,
+				offline: c_gray,
+			},
+		},
+	},
 	
 	cmdbar: {
 		input_bar: {
@@ -78,13 +105,11 @@ con.ui = {
 #endregion
 #region Strings
 con.strings = {
-	game: "Game",
-	game_version: "1.0",
 	top: {
-		console: "Console",
-		on: "on",
+		console: "GMConsole",
 		gm: "GameMaker",
 		builddate: "Build date",
+		updstatus: "Upd status:",
 	},
 	build: {
 		test: "TEST",
@@ -123,27 +148,49 @@ con.strings = {
 			expected: "expected",
 			got: "got",
 			extra_argument: "Extra argument",
-		}
+		},
+	},
+	outdated: {
+		unknown: "Unknown",
+		yes: "OUTDATED",
+		no: "Up to date",
+		offline: "Offline",
 	},
 };
 #endregion
 #region Console "enums"
-con.enums = {};
-con.enums.logtype =
-{
-	log: 0,
-	warn: 1,
-	error: 2,
-	err: 2, // Same as "error"
-	debug: 3, // Will only print in test runs
-	none: 4,
-}
+con.enums = {
+	logtype: {
+		log: 0,
+		warn: 1,
+		error: 2,
+		err: 2, // Same as "error"
+		debug: 3, // Will only print if show_debug_logs is true in settings
+		none: 4,
+	},
+	outdated: {
+		unknown: 0,
+		yes: 1,
+		no: 2,
+		offline: 3,
+	},
+};
 #endregion
 #region Console settings
 con.settings = {
 	show_debug_logs: !con.build.release, // Show logs with the debug type
-	can_open: !con.build.release, // If false, console cannot be opened.
+	can_open: true, // If false, console cannot be opened.
+	//can_open: !con.build.release, // Uncomment if you want to disable the console on release builds
 };
+#region Others (post-enum)
+con.outdated = con.enums.outdated.offline;
+if (con.online && con.outdated == con.enums.outdated.offline)
+{
+	con.outdated = con.enums.outdated.unknown;
+}
+
+con.github.get_req.req = http_get(con.github.get_req.link); // Check the repo for updates
+#endregion
 #endregion
 #endregion
 #region Console functions
@@ -229,18 +276,47 @@ function ConCommandMeta(_name, _description, _arguments = [], _aliases = []) con
 #endregion
 #region Command-related functions
 /// @function												con_add_command(name, description, function, aliases)
-/// @description											Add a console command.
+/// @description											Add a console command. If the command already exists, an error is logged to the console.
 /// @param			{Struct.ConCommandMeta}	_meta			The name of the command to add.
 /// @param			{Function}				_func			The function to execute. Add an argument as a 
 ///															parameter to get command arguments.
-/// @return			{Undefined}
+/// @return			{Bool}									Whether the command has been successfully added.
 function con_add_command(_meta, _func)
 {
+	if (struct_exists(con.commands.funcs, _meta[$ "name"]))
+	{ 
+		con_log(con.enums.logtype.err, $"Cannot have 2 commands of the same name: {_meta[$ "name"]}"); 
+		return false; 
+	}
+	
 	con.commands.metas[$ _meta[$ "name"]] = _meta;
 	con.commands.funcs[$ _meta[$ "name"]] = _func;
+	return true;
 }
 #endregion
 #region Others
+#region Enum functions
+// Fun fact: I spent a whole minute thinking whether I should type "behaviour" (UK English) or "behavior" (US English)
+/// @description			Might result in odd behaviour if the enum has multiple keys with the same value.
+/// @param		{String}	_enum
+/// @param		{Any}		_val
+/// @returns	{Any}
+function con_enum_get_name(_enum, _val)
+{
+	//var con = global.__con.con;
+	if (!struct_exists(con, "enums")) { return; }
+	var _inv_struct = {};
+	var _struct = con.enums[$ _enum];
+	for (var i = 0; i < struct_names_count(_struct); i++)
+	{
+		var _k = struct_get_names(_struct)[i];
+		var _v = struct_get(_struct, _k);
+		_inv_struct[$ _v] = _k;
+	}
+	
+	return _inv_struct[$ _val];
+}
+#endregion
 /// @param		{Array<String>}	_args	Contains arguments, make them strings, they will be converted.
 /// @returns	{Any}					Success => Command's return; Fail => undefined
 function con_call_command(_args = [])
@@ -265,7 +341,7 @@ function con_call_command(_args = [])
 		// Feather disable once GM1100
 		// Feather disable once GM1063
 		// Feather disable once GM1012
-		if (_ret != "%h") { con_log(con.enums.logtype.log, $"{con.strings.cmdbar.returned} {(string_pos(typeof(_ret), "string|number|int32|int64|bool|struct|array") != 0 ? $"{con.strings.cmdbar.types[$ typeof(_ret)]}: {string(_ret)}" : (typeof(_ret) == "undefined" ? con.strings.cmdbar.types.undefined : typeof(_ret)))}"); } // Woah this line is atrociously long
+		if (_ret != "%h") { con_log(con.enums.logtype.log, $"{con.strings.cmdbar.returned} {(array_contains(["string","number","int64","bool","struct","array"], typeof(_ret)) ? $"{con.strings.cmdbar.types[$ typeof(_ret)]}: {string(_ret)}" : (typeof(_ret) == "undefined" ? con.strings.cmdbar.types.undefined : typeof(_ret)))}"); } // Woah this line is atrociously long
 		return _ret;
 	}
 	catch (e)
@@ -409,5 +485,5 @@ con.commands = {
 };
 
 event_perform(ev_alarm, 0); // Load built-in commands
-event_perform(ev_alarm, 1); // Load custom commands
+script_execute(con_user_console_commands); // Load custom commands
 #endregion

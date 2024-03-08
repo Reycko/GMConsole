@@ -36,11 +36,22 @@ function(_args, _arg_count) // Function
 		var _cmdargs_fmt = ""; // Formatted args
 		for (var i = 0; i < array_length(_meta.arguments); i++)
 		{
-			// Feather disable once GM1100
-			_cmdargs_fmt += $"\t{_cmdargs[i].arg}<{_cmdargs[i].type}>{_cmdargs[i].optional ? " (optional) " : ""}{array_length(_cmdargs[i].values) >= 1 ? $" (takes the following values, separated by |: `{string_join_ext("|", _cmdargs[i].values)}`)" : ""}: {_cmdargs[i].description}\n";
+			
+			// Feather fucked all these 2 over, so that's a good thing to note: Feather sucks with GM's "template literals"
+			
+			//_cmdargs_fmt += $"\t{_cmdargs[i].arg}<{_cmdargs[i].type}>{_cmdargs[i].optional ? " (optional) " : ""}{array_length(_cmdargs[i].values) >= 1 ? " (takes the following values, separated by |: `"string_join_ext("|",}{ _cmdargs[i].values}{)}`){ :}: {_cmdargs[i].description}\n";
+			_cmdargs_fmt += $"\t{_cmdargs[i].arg}<{_cmdargs[i].type}>{_cmdargs[i].optional ? " (optional) " : ""}";
+			_cmdargs_fmt += (array_length(_cmdargs[i].values) >= 1 ? $" (takes the following values, separated by |: `{string_join_ext("|", _cmdargs[i].values)}`) " : "");
+			_cmdargs_fmt += $": {_cmdargs[i].description}\n";
 		}
+		
+		// Same thing happened here
+		//_ret = $"\n{_meta.name}: {_meta.description}\n{_meta.arguments != [] ? "Arguments: \n"_cmdargs_fmt""}{ :}Command takes no arguments\n{_meta.aliases != [] ? "Aliases: `"string_join_ext("`|`",}{ _meta.aliases}{)}`{ :}Command has no aliases";
+		
+		_ret = $"\n{_meta.name}: {_meta.description}\n";
 		// Feather disable once GM1100
-		_ret = $"\n{_meta.name}: {_meta.description}\n{_meta.arguments != [] ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n{_meta.aliases != [] ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases"}";
+		_ret += $"({_meta.arguments != [] ? $"Arguments: \n{_cmdargs_fmt}" : "Command takes no arguments"}\n";
+		_ret += (_meta.aliases != [] ? $"Aliases: `{string_join_ext("`|`", _meta.aliases)}`" : "Command has no aliases");
 		return _ret;
 	}
 });
@@ -141,3 +152,32 @@ if (instance_exists(obj_gmlive) && live_enabled) // Requires YellowAfterlife's G
 		live_execute_string(_args[1]);
 	});
 }
+
+con_add_command(new ConCommandMeta
+(
+	"github", 
+	"Opens the GitHub page for GMConsole.",
+), function()
+{
+	url_open(con.github.link);
+});
+
+con_add_command(new ConCommandMeta
+(
+	"about", 
+	"Prints GMConsole information.", 
+	[], 
+	["version", "ver"],
+),
+function()
+{
+	// Feather disable once GM1100
+	var _ret = [
+		$"GMConsole v{con.version} (Update status: {con.strings.outdated[$ con_enum_get_name("outdated", con.outdated)]}{(con.latest_version != "" && con.outdated == con.enums.outdated.yes) ? $", latest stable version is {con.latest_version}" : ""})",
+		"Made with <3 by Reycko",
+		$"You are on branch {con.github.branch} (based on version name)",
+		"Use command `github` to open the github repo!",
+	];
+	
+	return $"\n{string_join_ext("\n", _ret)}";
+});

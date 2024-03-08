@@ -52,7 +52,7 @@ function format_log(_arr)
 if (con.open)
 {
 	#region init
-	draw_sprite_ext(con.screenshot, 0, 0, 0, 1 * (con.guisize[0] / con.game_guisize[0]), 1 * (con.guisize[1] / con.game_guisize[1]), 0, c_white, 1); //TODO: Make this it's own surface
+	draw_sprite_ext(con.screenshot, 0, 0, 0, 1 * (con.guisize[0] / con.game_guisize[0]), 1 * (con.guisize[1] / con.game_guisize[1]), 0, c_white, 1);
 	var prevfnt = draw_get_font();
 	draw_set_font(fnt_console);
 	#endregion
@@ -66,9 +66,15 @@ if (con.open)
 	// Text
 	draw_set_align(fa_left, fa_top);
 	draw_set_color(con.ui.text.colors.def);
+	var _outdated_txt = con.strings.outdated[$ con_enum_get_name("outdated", con.outdated)];
 	// Feather disable once GM1100
 	// Feather disable once GM1063
-	draw_text(0, 0, $"{con.strings.game} {con.strings.top.console} v{con.version} {con.strings.top.on} {con.strings.game} v{con.strings.game_version}{!con.build.release ? $"+{con.strings.build.test}" : ""}");
+	var _gameinfo_txt = $"{con.strings.top.console} v{con.version} | {con.strings.top.updstatus} ";
+	draw_text(0, 0, _gameinfo_txt);
+	var _outdated_clr = con.ui.top.colors.outdated[$ con_enum_get_name("outdated", con.outdated)];
+	draw_set_color(_outdated_clr);
+	draw_text(string_width(_gameinfo_txt), 0, _outdated_txt);
+	draw_set_color(con.ui.text.colors.def);
 	draw_text(0, string_height("M"), $"{con.strings.top.gm} v{GM_runtime_version}"); // Console font is monospace so any character will be the same height
 	draw_set_halign(fa_right);
 	var _build_date_txt = $"{con.strings.top.builddate} {date_datetime_string(GM_build_date)}";
