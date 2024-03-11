@@ -149,7 +149,8 @@ function(_args, _arg_count)
 {
 	if (_arg_count < 1) { con_log(con.enums.logtype.err, "Missing argument 1"); return "%h"; }
 	if (asset_get_index("obj_gmlive") == -1) { return "Missing GMLive"; }
-	if (is_undefined(live_enabled)) { return "Missing GMLive"; }
+	if (is_undefined(live_enabled)) { return "GMLive is not enabled"; }
+	if (!instance_number(obj_gmlive) == 1) { return "GMLive object is missing"; }
 	try
 	{
 		var _exec = [];
