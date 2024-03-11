@@ -30,17 +30,20 @@ con = {}; // This is our console's struct!
 #region Others (pre-enum)
 global.__con = id;
 con.open = false;
-con.hasgmlive = asset_get_index("obj_gmlive") != -1
-con.version = "0.3.00.03-dev";
+con.support = {
+	gmlive: (asset_get_index("obj_gmlive") != -1),
+};
+con.version = "0.3.00.03";
 con.latest_version = "";
 con.github = {
 	link: "https://github.com/Reycko/GMConsole",
 	branch: (con_is_stable(con.version) ? "stable" : "master"),
-}
+};
+
 con.github.get_req = { // Defining it right after defining con.github is important to avoid a crash w `link`
 	link: $"https://raw.github.com/Reycko/GMConsole/{con.github.branch}/ver.txt",
 	req: undefined,
-}
+};
 
 con.build = {
 	release: GM_build_type == "exe", // false = test run
@@ -214,12 +217,31 @@ function con_open()
 	if (con.open || !con.settings.can_open) { return; }
 	display_set_gui_size(con.guisize[0], con.guisize[1]);
 	var _deactivation_index = [];
-	var _console = id;
-	var gmlive = con.hasgmlive 
+	//var _console = id;
+	var _skip = [id];
+	for (var i = 0; i < struct_names_count(con.support); i++)
+	{
+		var _k = struct_get_names(con.support)[i];
+		var _v = con.support[$ _k];
+		
+		var _push = undefined;
+		if (_v == true)
+		{
+			switch (_k)
+			{
+				case "gmlive":
+					_push = instance_nearest(0, 0, obj_gmlive);
+				break;
+			}
+		}
+		
+		if (!is_undefined(_push) && _push != noone) { array_push(_skip, _push.id); }
+	}
+	
 	with (all)
 	{
-		if (id != _console && gmlive
-		&& (instance_exists(obj_gmlive) && id != instance_nearest(0, 0, obj_gmlive).id))
+		//if (id != _console && (con.support.gmlive ? id != _gmlive : true))
+		if (!array_contains(_skip, id))
 		{
 			array_push(_deactivation_index, self);
 			instance_deactivate_object(self);
@@ -289,6 +311,7 @@ function ConCommandMeta(_name, _description, _arguments = [], _aliases = [], _al
 	description = _description;
 	arguments = _arguments;
 	aliases = _aliases;
+	useraliases = [];
 	allow_extra_args = _allow_extra_args;
 }
 #endregion
@@ -451,9 +474,9 @@ function con_get_aliases()
 	var _metas = con.commands.metas;
 	for (var i = 0; i < struct_names_count(_metas); i++)
 	{
-		var key = struct_get_names(_metas)[i];
-		var value = struct_get(_metas, key);
-		_ret[$ key] = value[$ "aliases"];
+		var _k = struct_get_names(_metas)[i];
+		var _v = _metas[$ key];
+		_ret[$ _k] = _v[$ "aliases"];
 	}
 	return _ret;
 }
@@ -463,7 +486,7 @@ function con_get_aliases()
 function con_translate_alias(_alias)
 {
 	if (variable_instance_exists(self, con.commands.funcs[$ _alias]) || !is_undefined(con.commands.funcs[$ _alias])) { return _alias; } // Is already the actual name
-	_ret = _alias;
+	_ret = undefined;
 	struct_foreach(con_get_aliases(), function(_key, _value)
 	{
 		for (var i = 0; i < array_length(_value); i++)
@@ -478,7 +501,7 @@ function con_translate_alias(_alias)
 	
 	var __ret = _ret;
 	_ret = undefined;
-	return (__ret == _alias ? false : __ret);
+	return (is_undefined(__ret) ? false : __ret);
 }
 
 /// @param		{String}	_str	The input string.

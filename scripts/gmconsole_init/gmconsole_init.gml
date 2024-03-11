@@ -46,7 +46,7 @@ function compile_type_tostring(in)
 /// @returns	{Bool}
 function con_is_stable(_cver)
 {
-	if (string_ends_with(con.version, "-dev")) { return false; }
-	for (var i = 0; i < 10; i++) { if (string_ends_with(con.version, $"-rc{i}")) { return false; } }
+	if (string_ends_with(con.version, ".dev")) { return false; }
+	for (var i = 0; i < 10; i++) { if (string_ends_with(con.version, $".rc{i}")) { return false; } }
 	return true;
 }
